@@ -20,17 +20,8 @@
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background-color: var(--bg-color); color: var(--text-color); }
         
-        .header-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-        .nav-tabs { display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; width: 100%; flex-wrap: wrap; }
-        .nav-tab { background: #e0e0e0; border: none; padding: 10px 20px; font-size: 1em; font-weight: bold; border-radius: 4px; cursor: pointer; color: #555; transition: 0.2s; }
-        .nav-tab.active { background: var(--primary); color: white; }
-        .nav-tab:hover { opacity: 0.8; }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        h1 { color: var(--text-color); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        h2 { color: #34495e; margin-top: 30px; }
+        h1 { color: var(--text-color); border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-top: 40px; }
+        h2 { color: #34495e; margin-top: 20px; }
         
         .search-box { width: 100%; padding: 10px; font-size: 1em; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 20px; box-sizing: border-box; }
 
@@ -39,8 +30,7 @@
         .stat-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .stat-card span { font-size: 1.8em; font-weight: bold; color: var(--secondary); display: block; }
 
-        .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .widget { background: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .widget { background: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
         /* Baumstruktur für Journal */
         details { margin-bottom: 10px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; }
@@ -63,8 +53,6 @@
         button.delete-btn:hover { background-color: var(--danger-dark); }
         button.secondary-btn { background-color: #7f8c8d; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
         button.secondary-btn:hover { background-color: #616a6b; }
-        button.file-btn { background-color: #e67e22; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
-        button.file-btn:hover { background-color: #d35400; }
         button.import-btn { background-color: #8e44ad; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
         button.import-btn:hover { background-color: #732d91; }
 
@@ -84,24 +72,18 @@
         /* Markdown-Styles */
         .markdown-content ul { padding-left: 20px; margin-top: 5px; }
         .markdown-content li { margin-bottom: 3px; }
+        
+        section { scroll-margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="header-bar">
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="switchTab('dashboard')">🏠 Dashboard</button>
-            <button class="nav-tab" onclick="switchTab('milestones')">⭐ Meilensteine</button>
-            <button class="nav-tab" onclick="switchTab('journal')">📖 Journal-Baum</button>
-            <button class="nav-tab" onclick="switchTab('books')">📚 Bücher</button>
-            <button class="nav-tab" onclick="switchTab('search-results-tab')" id="search-tab-btn" style="display:none;">🔍 Suche</button>
-        </div>
-    </div>
+    <h1 style="margin-top: 0;">🚀 Mein Life Tracker</h1>
 
     <!-- Backup & Import Management -->
     <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 15px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
         <div>
-            <strong>💾 Daten-Management:</strong> <span id="file-status" style="color: #27ae60; font-size: 0.9em;">Lokal gespeichert</span>
+            <strong>💾 Daten-Management:</strong> <span style="color: #27ae60; font-size: 0.9em;">Lokal gespeichert</span>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="secondary-btn" onclick="exportDataManual()">⬇️ Backup exportieren</button>
@@ -110,27 +92,33 @@
         </div>
     </div>
 
+    <!-- Suchfeld -->
     <input type="text" id="global-search" class="search-box" placeholder="🔍 Suche nach Stichworten in Meilensteinen, Journals & Büchern..." oninput="handleSearch()">
 
-    <!-- TAB 1: DASHBOARD -->
-    <div id="dashboard" class="tab-content active">
+    <!-- Suchergebnisse (Standardmäßig versteckt, wird bei Eingabe gefüllt) -->
+    <div id="search-results-section" style="display:none;" class="widget">
+        <h2 style="color: var(--primary);">🔍 Suchergebnisse</h2>
+        <div id="search-results-container"></div>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+    </div>
+
+    <!-- DASHBOARD / STATISTIKEN -->
+    <section id="sec-dashboard">
         <div class="stats-grid">
             <div class="stat-card">Erreichte Meilensteine<span id="stat-milestones">0</span></div>
             <div class="stat-card">Journal-Einträge<span id="stat-journals">0</span></div>
             <div class="stat-card">Gelesene Bücher<span id="stat-books">0</span></div>
         </div>
 
-        <div class="dashboard-grid">
-            <div class="widget">
-                <h2>🚀 Letzter Meilenstein</h2>
-                <div id="latest-milestone-preview"></div>
-            </div>
+        <div class="widget">
+            <h2>🚀 Letzter Meilenstein</h2>
+            <div id="latest-milestone-preview"></div>
         </div>
-    </div>
+    </section>
 
-    <!-- TAB 2: MEILENSTEINE -->
-    <div id="milestones" class="tab-content">
-        <h1>⭐ Meilensteine verwalten</h1>
+    <!-- MEILENSTEINE -->
+    <section id="sec-milestones">
+        <h1>⭐ Meilensteine</h1>
         
         <div class="widget" style="margin-bottom: 30px;">
             <h2 id="ms-form-title">Neuen Meilenstein hinzufügen</h2>
@@ -159,11 +147,11 @@
 
         <h2>Deine Meilenstein-Historie</h2>
         <div id="milestones-container"></div>
-    </div>
+    </section>
 
-    <!-- TAB 3: JOURNAL (BAUMSTRUKTUR) -->
-    <div id="journal" class="tab-content">
-        <h1>📖 Journal (Baumansicht)</h1>
+    <!-- JOURNAL -->
+    <section id="sec-journal">
+        <h1>📖 Journal</h1>
         
         <div class="widget" style="margin-bottom: 30px;">
             <h2>Eintrag verfassen / bearbeiten</h2>
@@ -184,11 +172,11 @@
 
         <h2>Archiv (Jahr 📁 ➡️ Monat 📂 ➡️ Tag 📄)</h2>
         <div id="journal-tree-container"></div>
-    </div>
+    </section>
 
-    <!-- TAB 4: BÜCHER (WISSEN & LESEN) -->
-    <div id="books" class="tab-content">
-        <h1>📚 Wissens- & Bücher-Tracker</h1>
+    <!-- BÜCHER -->
+    <section id="sec-books">
+        <h1>📚 Bücher-Tracker</h1>
         
         <div class="widget" style="margin-bottom: 30px;">
             <h2 id="book-form-title">Gelesenes Buch hinzufügen</h2>
@@ -223,13 +211,7 @@
 
         <h2>Deine gelesenen Bücher</h2>
         <div id="books-container"></div>
-    </div>
-
-    <!-- SUCH-ERGEBNISSE ANSICHT -->
-    <div id="search-results-tab" class="tab-content">
-        <h1>🔍 Suchergebnisse</h1>
-        <div id="search-results-container"></div>
-    </div>
+    </section>
 
     <script>
         function parseMarkdown(text) {
@@ -281,19 +263,6 @@
             document.getElementById('journal-date').valueAsDate = heute;
             renderAll();
         });
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(tabId).classList.add('active');
-            
-            if(tabId === 'dashboard') document.querySelectorAll('.nav-tab')[0].classList.add('active');
-            if(tabId === 'milestones') document.querySelectorAll('.nav-tab')[1].classList.add('active');
-            if(tabId === 'journal') document.querySelectorAll('.nav-tab')[2].classList.add('active');
-            if(tabId === 'books') document.querySelectorAll('.nav-tab')[3].classList.add('active');
-            if(tabId === 'search-results-tab') document.getElementById('search-tab-btn').classList.add('active');
-        }
 
         function saveData() {
             localStorage.setItem('clean_milestones', JSON.stringify(milestones));
@@ -394,7 +363,7 @@
             document.getElementById('ms-submit-btn').textContent = "Änderungen speichern";
             document.getElementById('ms-cancel-btn').style.display = "inline-block";
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('sec-milestones').scrollIntoView({ behavior: 'smooth' });
         }
 
         function deleteMilestone(index) {
@@ -489,10 +458,9 @@
         }
 
         function loadJournalToEditor(dateStr) {
-            switchTab('journal');
             document.getElementById('journal-date').value = dateStr;
             checkExistingJournalDate();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('sec-journal').scrollIntoView({ behavior: 'smooth' });
         }
 
         function renderJournalTree() {
@@ -583,7 +551,7 @@
             document.getElementById('book-submit-btn').textContent = "Änderungen speichern";
             document.getElementById('book-cancel-btn').style.display = "inline-block";
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('sec-books').scrollIntoView({ behavior: 'smooth' });
         }
 
         function deleteBook(index) {
@@ -657,19 +625,15 @@
         // --- SUCHE ---
         function handleSearch() {
             const query = document.getElementById('global-search').value.toLowerCase().trim();
+            const resultsSection = document.getElementById('search-results-section');
             const resultsContainer = document.getElementById('search-results-container');
-            const searchTabBtn = document.getElementById('search-tab-btn');
             
             if (!query) {
-                searchTabBtn.style.display = 'none';
-                if (document.getElementById('search-results-tab').classList.contains('active')) {
-                    switchTab('dashboard');
-                }
+                resultsSection.style.display = 'none';
                 return;
             }
 
-            searchTabBtn.style.display = 'block';
-            switchTab('search-results-tab');
+            resultsSection.style.display = 'block';
             resultsContainer.innerHTML = '';
 
             let matches = 0;
@@ -686,7 +650,7 @@
                                 <h3 style="margin:0;">${m.title}</h3>
                             </div>
                             <div class="card-actions">
-                                <button class="edit-btn" onclick="switchTab('milestones'); editMilestone(${index});">✏️ Bearbeiten</button>
+                                <button class="edit-btn" onclick="editMilestone(${index});">✏️ Bearbeiten</button>
                                 <button class="delete-btn" onclick="deleteMilestone(${index}); handleSearch();">🗑️ Löschen</button>
                             </div>
                         </div>
@@ -729,7 +693,7 @@
                                 <h3 style="margin:0;">${b.title}</h3>
                             </div>
                             <div class="card-actions">
-                                <button class="edit-btn" onclick="switchTab('books'); editBook(${index});">✏️ Bearbeiten</button>
+                                <button class="edit-btn" onclick="editBook(${index});">✏️ Bearbeiten</button>
                                 <button class="delete-btn" onclick="deleteBook(${index}); handleSearch();">🗑️ Löschen</button>
                             </div>
                         </div>
