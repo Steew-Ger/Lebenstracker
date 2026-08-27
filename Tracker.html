@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meilenstein & Journal Tracker</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #27ae60;
+            --secondary-dark: #219653;
+            --danger: #e74c3c;
+            --danger-dark: #c0392b;
+            --bg-color: #f4f7f6;
+            --text-color: #2c3e50;
+            --card-bg: #ffffff;
+            --border-color: #ddd;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background-color: var(--bg-color); color: var(--text-color); }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        .nav-tabs { display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; width: 100%; flex-wrap: wrap; }
+        .nav-tab { background: #e0e0e0; border: none; padding: 10px 20px; font-size: 1em; font-weight: bold; border-radius: 4px; cursor: pointer; color: #555; transition: 0.2s; }
+        .nav-tab.active { background: var(--primary); color: white; }
+        .nav-tab:hover { opacity: 0.8; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        h1 { color: var(--text-color); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        
+        .search-box { width: 100%; padding: 10px; font-size: 1em; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 20px; box-sizing: border-box; }
+
+        /* Statistik-Leiste */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stat-card span { font-size: 1.8em; font-weight: bold; color: var(--secondary); display: block; }
+
+        .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .widget { background: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        /* Baumstruktur für Journal */
+        details { margin-bottom: 10px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; }
+        summary { font-weight: bold; cursor: pointer; padding: 8px; color: var(--text-color); outline: none; }
+        summary:hover { color: var(--primary); }
+        .tree-month { margin-left: 15px; margin-top: 5px; }
+        .tree-entry { margin-left: 25px; margin-top: 5px; padding: 8px; background: #f9f9f9; border-left: 3px solid var(--primary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .tree-entry:hover { background: #eef2f3; }
+
+        .input-group label { display: block; margin-top: 10px; font-weight: bold; }
+        .input-group input[type="date"], .input-group input[type="text"], .input-group select, .input-group textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        .input-group textarea { min-height: 100px; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        button.action-btn { background-color: var(--secondary); color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: bold; }
+        button.action-btn:hover { background-color: var(--secondary-dark); }
+        button.edit-btn { background-color: var(--primary); color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
+        button.edit-btn:hover { background-color: var(--primary-dark); }
+        button.delete-btn { background-color: var(--danger); color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
+        button.delete-btn:hover { background-color: var(--danger-dark); }
+        button.secondary-btn { background-color: #7f8c8d; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        button.secondary-btn:hover { background-color: #616a6b; }
+        button.file-btn { background-color: #e67e22; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        button.file-btn:hover { background-color: #d35400; }
+        button.import-btn { background-color: #8e44ad; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        button.import-btn:hover { background-color: #732d91; }
+
+        .milestone, .journal-entry-card, .book-card { background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; margin-bottom: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        .card-header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 5px; flex-wrap: wrap; }
+        .milestone h3, .journal-entry-card h3, .book-card h3 { margin: 0; color: var(--text-color); font-size: 1.3em; flex: 1; }
+        .card-actions { display: flex; gap: 5px; flex-shrink: 0; }
+        
+        .date { font-style: italic; color: #7f8c8d; font-size: 0.9em; margin-bottom: 10px; }
+        .milestone img, .milestone video { max-width: 100%; height: auto; display: block; margin-top: 10px; border-radius: 4px; }
+
+        .book-meta { font-size: 0.95em; color: #e67e22; font-weight: bold; margin-bottom: 8px; }
+        .book-section { margin-top: 10px; }
+        .book-section strong { color: #34495e; }
+
+        /* Markdown-Styles */
+        .markdown-content ul { padding-left: 20px; margin-top: 5px; }
+        .markdown-content li { margin-bottom: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('dashboard')">🏠 Dashboard</button>
+            <button class="nav-tab" onclick="switchTab('milestones')">⭐ Meilensteine</button>
+            <button class="nav-tab" onclick="switchTab('journal')">📖 Journal-Baum</button>
+            <button class="nav-tab" onclick="switchTab('books')">📚 Bücher</button>
+            <button class="nav-tab" onclick="switchTab('search-results-tab')" id="search-tab-btn" style="display:none;">🔍 Suche</button>
+        </div>
+    </div>
+
+    <!-- Backup & Import Management -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 15px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <strong>💾 Daten-Management:</strong> <span id="file-status" style="color: #27ae60; font-size: 0.9em;">Lokal gespeichert</span>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="secondary-btn" onclick="exportDataManual()">⬇️ Backup exportieren</button>
+            <button class="import-btn" onclick="document.getElementById('import-file').click()">📥 Intelligent importieren</button>
+            <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importDataWithMerge(event)">
+        </div>
+    </div>
+
+    <input type="text" id="global-search" class="search-box" placeholder="🔍 Suche nach Stichworten in Meilensteinen, Journals & Büchern..." oninput="handleSearch()">
+
+    <!-- TAB 1: DASHBOARD -->
+    <div id="dashboard" class="tab-content active">
+        <div class="stats-grid">
+            <div class="stat-card">Erreichte Meilensteine<span id="stat-milestones">0</span></div>
+            <div class="stat-card">Journal-Einträge<span id="stat-journals">0</span></div>
+            <div class="stat-card">Gelesene Bücher<span id="stat-books">0</span></div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="widget">
+                <h2>🚀 Letzter Meilenstein</h2>
+                <div id="latest-milestone-preview"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: MEILENSTEINE -->
+    <div id="milestones" class="tab-content">
+        <h1>⭐ Meilensteine verwalten</h1>
+        
+        <div class="widget" style="margin-bottom: 30px;">
+            <h2 id="ms-form-title">Neuen Meilenstein hinzufügen</h2>
+            <input type="hidden" id="ms-edit-index" value="-1">
+            <div class="input-group">
+                <label for="ms-date">Datum des Ereignisses:</label>
+                <input type="date" id="ms-date">
+            </div>
+            <div class="input-group">
+                <label for="ms-title">Titel des Meilensteins:</label>
+                <input type="text" id="ms-title" placeholder="z.B. Meilenstein Titel">
+            </div>
+            <div class="input-group">
+                <label for="ms-text">Beschreibung / Gedanken (Markdown unterstützt: **fett**, *kursiv*, - Listen):</label>
+                <textarea id="ms-text" placeholder="Reflexion, Details..."></textarea>
+            </div>
+            <div class="input-group">
+                <label for="ms-media">Medien-Link / Pfad (optional):</label>
+                <input type="text" id="ms-media" placeholder="z.B. Bild-URL oder Pfad">
+            </div>
+            <div class="btn-group">
+                <button class="action-btn" id="ms-submit-btn" onclick="saveMilestone()">Meilenstein speichern</button>
+                <button class="secondary-btn" id="ms-cancel-btn" style="display:none;" onclick="resetMilestoneForm()">Abbrechen</button>
+            </div>
+        </div>
+
+        <h2>Deine Meilenstein-Historie</h2>
+        <div id="milestones-container"></div>
+    </div>
+
+    <!-- TAB 3: JOURNAL (BAUMSTRUKTUR) -->
+    <div id="journal" class="tab-content">
+        <h1>📖 Journal (Baumansicht)</h1>
+        
+        <div class="widget" style="margin-bottom: 30px;">
+            <h2>Eintrag verfassen / bearbeiten</h2>
+            <div class="input-group">
+                <label for="journal-date">Datum des Eintrags:</label>
+                <input type="date" id="journal-date" onchange="checkExistingJournalDate()">
+            </div>
+            <div class="input-group">
+                <label for="journal-title">Titel / Thema:</label>
+                <input type="text" id="journal-title" placeholder="z.B. Wochenrückblick">
+            </div>
+            <div class="input-group">
+                <label for="journal-text">Journal-Inhalt (Markdown unterstützt):</label>
+                <textarea id="journal-text" placeholder="Deine Gedanken..."></textarea>
+            </div>
+            <button class="action-btn" onclick="saveJournalEntry()">Eintrag speichern</button>
+        </div>
+
+        <h2>Archiv (Jahr 📁 ➡️ Monat 📂 ➡️ Tag 📄)</h2>
+        <div id="journal-tree-container"></div>
+    </div>
+
+    <!-- TAB 4: BÜCHER (WISSEN & LESEN) -->
+    <div id="books" class="tab-content">
+        <h1>📚 Wissens- & Bücher-Tracker</h1>
+        
+        <div class="widget" style="margin-bottom: 30px;">
+            <h2 id="book-form-title">Gelesenes Buch hinzufügen</h2>
+            <input type="hidden" id="book-edit-index" value="-1">
+            <div class="input-group">
+                <label for="book-title">Buchtitel & Autor:</label>
+                <input type="text" id="book-title" placeholder="z.B. Autor - Buchtitel">
+            </div>
+            <div class="input-group">
+                <label for="book-rating">Bewertung:</label>
+                <select id="book-rating">
+                    <option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐ (Meisterwerk)</option>
+                    <option value="⭐⭐⭐⭐">⭐⭐⭐⭐ (Sehr gut)</option>
+                    <option value="⭐⭐⭐">⭐⭐⭐ (Gut)</option>
+                    <option value="⭐⭐">⭐⭐ (Mittelmäßig)</option>
+                    <option value="⭐">⭐ (Schwach)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="book-summary">Zusammenfassung:</label>
+                <textarea id="book-summary" placeholder="Worum ging es in dem Buch?"></textarea>
+            </div>
+            <div class="input-group">
+                <label for="book-learning">1 Wichtiges Learning (Actionable Takeaway):</label>
+                <textarea id="book-learning" placeholder="Was nimmst du mit?"></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="action-btn" id="book-submit-btn" onclick="saveBook()">Buch speichern</button>
+                <button class="secondary-btn" id="book-cancel-btn" style="display:none;" onclick="resetBookForm()">Abbrechen</button>
+            </div>
+        </div>
+
+        <h2>Deine gelesenen Bücher</h2>
+        <div id="books-container"></div>
+    </div>
+
+    <!-- SUCH-ERGEBNISSE ANSICHT -->
+    <div id="search-results-tab" class="tab-content">
+        <h1>🔍 Suchergebnisse</h1>
+        <div id="search-results-container"></div>
+    </div>
+
+    <script>
+        function parseMarkdown(text) {
+            if (!text) return '';
+            let html = text
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/### (.*$)/gim, '<h4>$1</h4>')
+                .replace(/## (.*$)/gim, '<h3>$1</h3>');
+
+            let lines = html.split('\n');
+            let inList = false;
+            let resultLines = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.startsWith('- ')) {
+                    if (!inList) {
+                        inList = true;
+                        resultLines.push('<ul>');
+                    }
+                    resultLines.push(`<li>${line.substring(2)}</li>`);
+                } else {
+                    if (inList) {
+                        inList = false;
+                        resultLines.push('</ul>');
+                    }
+                    resultLines.push(line);
+                }
+            }
+            if (inList) resultLines.push('</ul>');
+
+            return resultLines.join('<br>');
+        }
+
+        function getStoredData(key, defaultVal) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : defaultVal;
+        }
+
+        let milestones = getStoredData('clean_milestones', []);
+        let journals = getStoredData('clean_journals', {});
+        let books = getStoredData('clean_books', []);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const heute = new Date();
+            document.getElementById('ms-date').valueAsDate = heute;
+            document.getElementById('journal-date').valueAsDate = heute;
+            renderAll();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            
+            if(tabId === 'dashboard') document.querySelectorAll('.nav-tab')[0].classList.add('active');
+            if(tabId === 'milestones') document.querySelectorAll('.nav-tab')[1].classList.add('active');
+            if(tabId === 'journal') document.querySelectorAll('.nav-tab')[2].classList.add('active');
+            if(tabId === 'books') document.querySelectorAll('.nav-tab')[3].classList.add('active');
+            if(tabId === 'search-results-tab') document.getElementById('search-tab-btn').classList.add('active');
+        }
+
+        function saveData() {
+            localStorage.setItem('clean_milestones', JSON.stringify(milestones));
+            localStorage.setItem('clean_journals', JSON.stringify(journals));
+            localStorage.setItem('clean_books', JSON.stringify(books));
+            renderAll();
+        }
+
+        function exportDataManual() {
+            const data = { milestones, journals, books };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function importDataWithMerge(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.milestones && !importedData.journals) {
+                        alert("Ungültiges Datei-Format.");
+                        return;
+                    }
+
+                    if (importedData.milestones && Array.isArray(importedData.milestones)) {
+                        importedData.milestones.forEach(impM => {
+                            const index = milestones.findIndex(m => m.title === impM.title && m.date === impM.date);
+                            if (index === -1) milestones.push(impM);
+                            else milestones[index] = impM;
+                        });
+                        milestones.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    }
+
+                    if (importedData.journals) {
+                        for (let dateStr in importedData.journals) {
+                            journals[dateStr] = importedData.journals[dateStr];
+                        }
+                    }
+
+                    if (importedData.books && Array.isArray(importedData.books)) {
+                        importedData.books.forEach(impB => {
+                            const index = books.findIndex(b => b.title === impB.title);
+                            if (index === -1) books.push(impB);
+                            else books[index] = impB;
+                        });
+                    }
+
+                    saveData();
+                    alert("Import erfolgreich abgeschlossen!");
+                } catch (err) {
+                    alert("Fehler beim Lesen der JSON-Datei: " + err.message);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- MEILENSTEINE ---
+        function saveMilestone() {
+            const dateStr = document.getElementById('ms-date').value;
+            const title = document.getElementById('ms-title').value.trim();
+            const text = document.getElementById('ms-text').value.trim();
+            const media = document.getElementById('ms-media').value.trim();
+            const editIndex = parseInt(document.getElementById('ms-edit-index').value);
+
+            if (!dateStr || !title || !text) {
+                alert("Bitte fülle Datum, Titel und Beschreibung aus.");
+                return;
+            }
+
+            if (editIndex > -1) {
+                milestones[editIndex] = { date: dateStr, title, text, media };
+            } else {
+                milestones.unshift({ date: dateStr, title, text, media });
+            }
+
+            resetMilestoneForm();
+            saveData();
+        }
+
+        function editMilestone(index) {
+            const m = milestones[index];
+            document.getElementById('ms-date').value = m.date;
+            document.getElementById('ms-title').value = m.title;
+            document.getElementById('ms-text').value = m.text;
+            document.getElementById('ms-media').value = m.media || '';
+            document.getElementById('ms-edit-index').value = index;
+
+            document.getElementById('ms-form-title').textContent = "Meilenstein bearbeiten";
+            document.getElementById('ms-submit-btn').textContent = "Änderungen speichern";
+            document.getElementById('ms-cancel-btn').style.display = "inline-block";
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteMilestone(index) {
+            if (confirm("Möchtest du diesen Meilenstein wirklich löschen?")) {
+                milestones.splice(index, 1);
+                saveData();
+            }
+        }
+
+        function resetMilestoneForm() {
+            document.getElementById('ms-date').valueAsDate = new Date();
+            document.getElementById('ms-title').value = '';
+            document.getElementById('ms-text').value = '';
+            document.getElementById('ms-media').value = '';
+            document.getElementById('ms-edit-index').value = "-1";
+
+            document.getElementById('ms-form-title').textContent = "Neuen Meilenstein hinzufügen";
+            document.getElementById('ms-submit-btn').textContent = "Meilenstein speichern";
+            document.getElementById('ms-cancel-btn').style.display = "none";
+        }
+
+        function renderMilestones() {
+            const container = document.getElementById('milestones-container');
+            container.innerHTML = '';
+
+            if (milestones.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d; font-style: italic;">Keine Meilensteine vorhanden.</p>';
+                return;
+            }
+
+            milestones.forEach((m, index) => {
+                let mediaHtml = '';
+                if (m.media) {
+                    const ext = m.media.split('.').pop().toLowerCase();
+                    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+                        mediaHtml = `<img src="${m.media}" alt="${m.title}">`;
+                    } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                        mediaHtml = `<video controls src="${m.media}"></video>`;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'milestone';
+                card.innerHTML = `
+                    <div class="card-header-top">
+                        <h3>${m.title}</h3>
+                        <div class="card-actions">
+                            <button class="edit-btn" onclick="editMilestone(${index})">✏️ Bearbeiten</button>
+                            <button class="delete-btn" onclick="deleteMilestone(${index})">🗑️ Löschen</button>
+                        </div>
+                    </div>
+                    <p class="date">Datum: ${m.date}</p>
+                    <div class="markdown-content">${parseMarkdown(m.text)}</div>
+                    ${mediaHtml}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- JOURNAL ---
+        function saveJournalEntry() {
+            const dateStr = document.getElementById('journal-date').value;
+            const title = document.getElementById('journal-title').value.trim();
+            const text = document.getElementById('journal-text').value.trim();
+
+            if (!dateStr || !text) {
+                alert("Bitte gib ein Datum und den Journal-Inhalt an.");
+                return;
+            }
+
+            journals[dateStr] = { title: title || `Eintrag vom ${dateStr}`, text: text };
+            saveData();
+            alert("Journal-Eintrag gespeichert!");
+        }
+
+        function deleteJournalEntry(dateStr) {
+            if (confirm(`Möchtest du den Journal-Eintrag vom ${dateStr} wirklich löschen?`)) {
+                delete journals[dateStr];
+                saveData();
+            }
+        }
+
+        function checkExistingJournalDate() {
+            const dateStr = document.getElementById('journal-date').value;
+            if (journals[dateStr]) {
+                document.getElementById('journal-title').value = journals[dateStr].title;
+                document.getElementById('journal-text').value = journals[dateStr].text;
+            } else {
+                document.getElementById('journal-title').value = '';
+                document.getElementById('journal-text').value = '';
+            }
+        }
+
+        function loadJournalToEditor(dateStr) {
+            switchTab('journal');
+            document.getElementById('journal-date').value = dateStr;
+            checkExistingJournalDate();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderJournalTree() {
+            const container = document.getElementById('journal-tree-container');
+            container.innerHTML = '';
+
+            const dates = Object.keys(journals).sort((a, b) => new Date(b) - new Date(a));
+
+            if (dates.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d; font-style: italic;">Keine Journal-Einträge vorhanden.</p>';
+                return;
+            }
+
+            let treeData = {};
+            dates.forEach(dateStr => {
+                const dateObj = new Date(dateStr);
+                const year = dateObj.getFullYear();
+                const month = dateObj.toLocaleString('de-DE', { month: 'long' });
+
+                if (!treeData[year]) treeData[year] = {};
+                if (!treeData[year][month]) treeData[year][month] = [];
+                
+                treeData[year][month].push({ dateStr, ...journals[dateStr] });
+            });
+
+            for (let year in treeData) {
+                const yearDetails = document.createElement('details');
+                yearDetails.open = true;
+                yearDetails.innerHTML = `<summary>📁 Jahr ${year}</summary>`;
+
+                for (let month in treeData[year]) {
+                    const monthDetails = document.createElement('details');
+                    monthDetails.className = 'tree-month';
+                    monthDetails.open = true;
+                    monthDetails.innerHTML = `<summary>📂 ${month}</summary>`;
+
+                    treeData[year][month].forEach(item => {
+                        const entryDiv = document.createElement('div');
+                        entryDiv.className = 'tree-entry';
+                        entryDiv.innerHTML = `
+                            <span>📄 <strong>${item.dateStr}</strong>: ${item.title}</span> 
+                            <div style="display: flex; gap: 5px;">
+                                <button class="edit-btn" onclick="loadJournalToEditor('${item.dateStr}')">✏️ Bearbeiten</button>
+                                <button class="delete-btn" onclick="deleteJournalEntry('${item.dateStr}')">🗑️ Löschen</button>
+                            </div>
+                        `;
+                        monthDetails.appendChild(entryDiv);
+                    });
+
+                    yearDetails.appendChild(monthDetails);
+                }
+                container.appendChild(yearDetails);
+            }
+        }
+
+        // --- BÜCHER-TRACKER ---
+        function saveBook() {
+            const title = document.getElementById('book-title').value.trim();
+            const rating = document.getElementById('book-rating').value;
+            const summary = document.getElementById('book-summary').value.trim();
+            const learning = document.getElementById('book-learning').value.trim();
+            const editIndex = parseInt(document.getElementById('book-edit-index').value);
+
+            if (!title || !summary || !learning) {
+                alert("Bitte fülle Buchtitel, Zusammenfassung und das Learning aus.");
+                return;
+            }
+
+            if (editIndex > -1) {
+                books[editIndex] = { title, rating, summary, learning };
+            } else {
+                books.unshift({ title, rating, summary, learning });
+            }
+
+            resetBookForm();
+            saveData();
+        }
+
+        function editBook(index) {
+            const b = books[index];
+            document.getElementById('book-title').value = b.title;
+            document.getElementById('book-rating').value = b.rating;
+            document.getElementById('book-summary').value = b.summary;
+            document.getElementById('book-learning').value = b.learning;
+            document.getElementById('book-edit-index').value = index;
+
+            document.getElementById('book-form-title').textContent = "Buch bearbeiten";
+            document.getElementById('book-submit-btn').textContent = "Änderungen speichern";
+            document.getElementById('book-cancel-btn').style.display = "inline-block";
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteBook(index) {
+            if (confirm("Möchtest du dieses Buch wirklich löschen?")) {
+                books.splice(index, 1);
+                saveData();
+            }
+        }
+
+        function resetBookForm() {
+            document.getElementById('book-title').value = '';
+            document.getElementById('book-rating').value = '⭐⭐⭐⭐⭐';
+            document.getElementById('book-summary').value = '';
+            document.getElementById('book-learning').value = '';
+            document.getElementById('book-edit-index').value = "-1";
+
+            document.getElementById('book-form-title').textContent = "Gelesenes Buch hinzufügen";
+            document.getElementById('book-submit-btn').textContent = "Buch speichern";
+            document.getElementById('book-cancel-btn').style.display = "none";
+        }
+
+        function renderBooks() {
+            const container = document.getElementById('books-container');
+            container.innerHTML = '';
+
+            if (books.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d; font-style: italic;">Noch keine Bücher eingetragen.</p>';
+                return;
+            }
+
+            books.forEach((b, index) => {
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                card.innerHTML = `
+                    <div class="card-header-top">
+                        <h3>📖 ${b.title}</h3>
+                        <div class="card-actions">
+                            <button class="edit-btn" onclick="editBook(${index})">✏️ Bearbeiten</button>
+                            <button class="delete-btn" onclick="deleteBook(${index})">🗑️ Löschen</button>
+                        </div>
+                    </div>
+                    <div class="book-meta">Bewertung: ${b.rating}</div>
+                    <div class="book-section"><strong>Zusammenfassung:</strong><br>${parseMarkdown(b.summary)}</div>
+                    <div class="book-section" style="margin-top: 8px;"><strong>🎯 Learning:</strong><br><span style="color: var(--secondary-dark); font-weight: 500;">${parseMarkdown(b.learning)}</span></div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- DASHBOARD ---
+        function renderDashboard() {
+            document.getElementById('stat-milestones').textContent = milestones.length;
+            document.getElementById('stat-journals').textContent = Object.keys(journals).length;
+            document.getElementById('stat-books').textContent = books.length;
+
+            const previewContainer = document.getElementById('latest-milestone-preview');
+            if (milestones.length > 0) {
+                const latest = milestones[0];
+                previewContainer.innerHTML = `
+                    <div class="card-header-top">
+                        <h3 style="margin:0; color: var(--text-color);">${latest.title}</h3>
+                    </div>
+                    <p class="date">Datum: ${latest.date}</p>
+                    <div class="markdown-content">${parseMarkdown(latest.text.substring(0, 200))}...</div>
+                `;
+            } else {
+                previewContainer.innerHTML = '<p style="color: #7f8c8d; font-style: italic;">Keine Meilensteine vorhanden.</p>';
+            }
+        }
+
+        // --- SUCHE ---
+        function handleSearch() {
+            const query = document.getElementById('global-search').value.toLowerCase().trim();
+            const resultsContainer = document.getElementById('search-results-container');
+            const searchTabBtn = document.getElementById('search-tab-btn');
+            
+            if (!query) {
+                searchTabBtn.style.display = 'none';
+                if (document.getElementById('search-results-tab').classList.contains('active')) {
+                    switchTab('dashboard');
+                }
+                return;
+            }
+
+            searchTabBtn.style.display = 'block';
+            switchTab('search-results-tab');
+            resultsContainer.innerHTML = '';
+
+            let matches = 0;
+
+            milestones.forEach((m, index) => {
+                if (m.title.toLowerCase().includes(query) || m.text.toLowerCase().includes(query)) {
+                    matches++;
+                    const card = document.createElement('div');
+                    card.className = 'milestone';
+                    card.innerHTML = `
+                        <div class="card-header-top">
+                            <div>
+                                <span style="background: var(--primary); color: white; padding: 2px 6px; font-size: 0.8em; border-radius: 3px; display:inline-block; margin-bottom:5px;">Meilenstein</span>
+                                <h3 style="margin:0;">${m.title}</h3>
+                            </div>
+                            <div class="card-actions">
+                                <button class="edit-btn" onclick="switchTab('milestones'); editMilestone(${index});">✏️ Bearbeiten</button>
+                                <button class="delete-btn" onclick="deleteMilestone(${index}); handleSearch();">🗑️ Löschen</button>
+                            </div>
+                        </div>
+                        <p class="date">${m.date}</p><div class="markdown-content">${parseMarkdown(m.text)}</div>`;
+                    resultsContainer.appendChild(card);
+                }
+            });
+
+            for (let dateStr in journals) {
+                const j = journals[dateStr];
+                if (j.title.toLowerCase().includes(query) || j.text.toLowerCase().includes(query)) {
+                    matches++;
+                    const card = document.createElement('div');
+                    card.className = 'journal-entry-card';
+                    card.innerHTML = `
+                        <div class="card-header-top">
+                            <div>
+                                <span style="background: var(--secondary); color: white; padding: 2px 6px; font-size: 0.8em; border-radius: 3px; display:inline-block; margin-bottom:5px;">Journal</span>
+                                <h3 style="margin:0;">${j.title}</h3>
+                            </div>
+                            <div class="card-actions">
+                                <button class="edit-btn" onclick="loadJournalToEditor('${dateStr}')">✏️ Bearbeiten</button>
+                                <button class="delete-btn" onclick="deleteJournalEntry('${dateStr}'); handleSearch();">🗑️ Löschen</button>
+                            </div>
+                        </div>
+                        <p class="date">${dateStr}</p><div class="markdown-content">${parseMarkdown(j.text)}</div>`;
+                    resultsContainer.appendChild(card);
+                }
+            }
+
+            books.forEach((b, index) => {
+                if (b.title.toLowerCase().includes(query) || b.summary.toLowerCase().includes(query) || b.learning.toLowerCase().includes(query)) {
+                    matches++;
+                    const card = document.createElement('div');
+                    card.className = 'book-card';
+                    card.innerHTML = `
+                        <div class="card-header-top">
+                            <div>
+                                <span style="background: #e67e22; color: white; padding: 2px 6px; font-size: 0.8em; border-radius: 3px; display:inline-block; margin-bottom:5px;">Buch (${b.rating})</span>
+                                <h3 style="margin:0;">${b.title}</h3>
+                            </div>
+                            <div class="card-actions">
+                                <button class="edit-btn" onclick="switchTab('books'); editBook(${index});">✏️ Bearbeiten</button>
+                                <button class="delete-btn" onclick="deleteBook(${index}); handleSearch();">🗑️ Löschen</button>
+                            </div>
+                        </div>
+                        <div class="book-section" style="margin-top: 10px;"><strong>Zusammenfassung:</strong><br>${parseMarkdown(b.summary)}</div>
+                        <div class="book-section" style="margin-top: 8px;"><strong>🎯 Learning:</strong><br><span style="color: var(--secondary-dark);">${parseMarkdown(b.learning)}</span></div>`;
+                    resultsContainer.appendChild(card);
+                }
+            });
+
+            if (matches === 0) {
+                resultsContainer.innerHTML = `<p style="color: #7f8c8d;">Keine Treffer für "${query}" gefunden.</p>`;
+            }
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderMilestones();
+            renderJournalTree();
+            renderBooks();
+        }
+    </script>
+</body>
+</html>
